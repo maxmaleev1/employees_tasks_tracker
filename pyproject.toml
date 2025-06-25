@@ -3,14 +3,29 @@ name = "employees-tasks-tracker"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Максим Малеев",email = "mmaleev1@gmail.com"}
+  { name = "Максим Малеев", email = "mmaleev1@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "python-decouple (>=3.8,<4.0)",
+  "psycopg[binary] (>=3.2.9,<4.0.0)",
+  "gunicorn (>=23.0.0,<24.0.0)",
+  "django (>=5.2.3,<6.0.0)",
+  "djangorestframework (>=3.16.0,<4.0.0)",
+  "djangorestframework-simplejwt (>=5.5.0,<6.0.0)",
+  "drf-spectacular (>=0.28.0,<0.29.0)"
 ]
 
+# ⬇️ Указываем, где находится код проекта
+[tool.poetry]
+packages = [{ include = "employees_tasks" }]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+pytest-django = "^4.11.1"
+pytest-cov = "^6.2.1"
