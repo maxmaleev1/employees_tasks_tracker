@@ -11,9 +11,11 @@ python manage.py migrate
 echo "📦 Собираем статические файлы..."
 python manage.py collectstatic --noinput
 
-# Запускаем Gunicorn (WSGI сервер)
-echo "🚀 Запускаем Gunicorn..."
-gunicorn config.wsgi:application \
-  --bind 0.0.0.0:8000 \
-  --workers 4 \
-  --timeout 120
+## Запускаем Gunicorn (WSGI сервер)
+#echo "🚀 Запускаем Gunicorn..."
+#gunicorn config.wsgi:application \
+#  --bind 0.0.0.0:8000 \
+#  --timeout 120
+
+# Запускаем Django runserver для разработки
+exec python manage.py runserver 0.0.0.0:8000

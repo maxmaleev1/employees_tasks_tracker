@@ -6,6 +6,7 @@ docker-compose.override.yml
 # Static & media (если будешь хранить локально)
 static/
 media/
+/staticfiles/
 
 database.ini
 .idea

@@ -1,0 +1,617 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Трекер задач сотрудников</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+
+    #task-status {
+  background: #333;
+  color: #eee;
+  border: 1px solid #555;
+  padding: 6px;
+  margin-top: 8px;
+}
+
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: #eee;
+    }
+    .wrapper {
+      width: 100%;
+      height: 100%;
+    }
+    .container {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      width: 100%;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .column {
+      flex: 1 1 50%;
+      width: 50%;
+      margin: 0 10px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .column h2 {
+      margin-top: 0;
+      color: #fff;
+      margin-bottom: 15px;
+      position: relative;
+      top: -20px;
+      font-size: 1.3em;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .item {
+      background: #333;
+      border-radius: 4px;
+      padding: 6px 10px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .item-header {
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .item-buttons button {
+      margin-left: 4px;
+      padding: 3px 6px;
+      font-size: 0.85em;
+      cursor: pointer;
+      background: #444;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+    }
+    .version {
+      font-size: 0.9em;
+      color: #bbb;
+      text-align: center;
+      margin: 10px 0;
+    }
+    form {
+      display: inline-block;
+      width: 90%;
+      text-align: left;
+    }
+    form button {
+      margin-top: 8px;
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      width: auto;
+    }
+    form input,
+    form select {
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 8px;
+      padding: 6px;
+      background: #333;
+      color: #eee;
+      border: 1px solid #555;
+    }
+    .label {
+      display: block;
+      margin-bottom: 4px;
+      color: #ccc;
+      font-size: 80%;
+    }
+    .label::after {
+      content: ":";
+    }
+  </style>
+</head>
+<body>
+
+<h1 style="text-align: center; color: #fff;">
+  Трекер задач сотрудников <span id="current-user"></span>
+</h1>
+
+<div class="version">16</div>
+
+<div class="wrapper">
+  <div class="container">
+    <div class="column">
+      <h2>🛠 Задачи <span id="task-count">(0)</span></h2>
+      <div class="section">
+        <h3 id="all-tasks-toggle">📋 Все</h3>
+        <div id="all-tasks" style="display: none;"></div>
+      </div>
+      <div class="section">
+        <h3 id="important-tasks-toggle">📌 Важные !не взятые в работу!</h3>
+        <div id="important-tasks" style="display: none;"></div>
+      </div>
+      <div class="section">
+        <h3 id="overdue-tasks-toggle">⏰ Просроченные</h3>
+        <div id="overdue-tasks" style="display: none;"></div>
+      </div>
+      <div class="section">
+        <h3>➕ Создать задачу</h3>
+        <form id="create-task-form">
+          <select id="task-parent">
+            <option value="">-- Родительская задача --</option>
+          </select>
+          <input type="text" id="task-title" placeholder="Название задачи" required>
+          <select id="task-employee" required></select>
+          <label class="label" for="task-deadline">Дедлайн</label>
+          <input type="datetime-local" id="task-deadline" required>
+          <label id="task-status-label" class="label">Статус задачи</label>
+          <select id="task-status">
+            <option value="not_started">Не начата</option>
+            <option value="in_progress">В работе</option>
+            <option value="completed">Завершена</option>
+          </select>
+
+
+          <button type="submit">Создать</button>
+        </form>
+
+        <div id="task-message" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div class="column">
+      <h2>👥 Сотрудники <span id="employee-count">(0)</span></h2>
+      <div class="section">
+        <h3 id="all-employees-toggle">📃 Все</h3>
+        <div id="all-employees" style="display: none;"></div>
+      </div>
+      <div class="section">
+        <h3 id="busy-employees-toggle">💼 Занятые</h3>
+        <div id="busy-employees" style="display: none;"></div>
+      </div>
+      <div class="section">
+        <h3>➕ Создать сотрудника</h3>
+        <form id="create-employee-form">
+          <input type="text" id="employee-full-name" placeholder="ФИО" required>
+          <input type="text" id="employee-position" placeholder="Должность" required>
+          <input type="text" id="employee-username" placeholder="Username" required>
+          <button type="submit">Создать</button>
+        </form>
+        <div id="employee-message" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+axios.defaults.headers.common['Authorization'] = 'Bearer ' + localStorage.getItem('access');
+
+let currentIsStaff = false;
+let currentUsername = '';
+
+function loadCurrentUser() {
+  axios.get('/employees_tasks/current_user/').then(resp => {
+    currentIsStaff = resp.data.is_staff;
+    currentUsername = resp.data.username;
+
+    document.getElementById('current-user').innerText = resp.data.full_name
+      ? ' (' + resp.data.full_name + ')'
+      : ' (' + resp.data.username + ')';
+
+    if (!currentIsStaff) {
+  // Скрываем только секцию создания задачи и сотрудников
+  const sections = document.querySelectorAll('.section');
+  sections.forEach(s => {
+    if (s.textContent.includes('Создать задачу') || s.textContent.includes('Создать сотрудника')) {
+      s.style.display = 'none';
+    }
+  });
+}
+
+
+    // При загрузке пользователя сбрасываем режим редактирования
+    editingTaskId = null;
+    editingTaskData = null;
+  });
+}
+
+
+
+
+function toggleSection(id, loader) {
+  const el = document.getElementById(id);
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+  if (loader) loader();
+}
+
+function loadAllEmployees() {
+  axios.get('/employees_tasks/employees/').then(response => {
+    const container = document.getElementById('all-employees');
+    container.innerHTML = '';
+    const select = document.getElementById('task-employee');
+    select.innerHTML = '<option value="">-- Выбрать сотрудника --</option>';
+    response.data.forEach(emp => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+      <div class="item-header">
+      <div><strong>${emp.full_name}</strong></div>
+      <div style="font-size:0.85em;color:#ccc;">${emp.position}</div>
+      </div>
+  ${currentIsStaff ? `
+  <div class="item-buttons">
+    <button onclick="editEmployee(${emp.id},'${emp.full_name}','${emp.position}','${emp.username}')">Изменить</button>
+    <button onclick="deleteEmployee(${emp.id})">Удалить</button>
+  </div>` : ''}
+`;
+
+      container.appendChild(div);
+      const option = document.createElement('option');
+      option.value = emp.id;
+      option.textContent = emp.full_name;
+      select.appendChild(option);
+    });
+    document.getElementById('employee-count').innerText = `(${response.data.length})`;
+  });
+}
+
+function editEmployee(id, fullName, position, username) {
+  editingEmployeeId = id;
+  document.getElementById('employee-full-name').value = fullName;
+  document.getElementById('employee-position').value = position;
+  document.getElementById('employee-username').value = username;
+  document.querySelector('#create-employee-form button').innerText = 'Сохранить';
+}
+
+function deleteEmployee(id) {
+  if (confirm('Удалить сотрудника?')) {
+    axios.delete('/employees_tasks/employees/' + id + '/').then(() => {
+      loadAllEmployees();
+      document.getElementById('employee-message').innerText = 'Сотрудник удалён.';
+    });
+  }
+}
+
+document.getElementById('create-employee-form').onsubmit = (e) => {
+  e.preventDefault();
+
+  if (editingEmployeeId) {
+    // PATCH без username
+    const data = {
+      full_name: document.getElementById('employee-full-name').value,
+      position: document.getElementById('employee-position').value
+    };
+    axios.patch('/employees_tasks/employees/' + editingEmployeeId + '/', data).then(() => {
+      editingEmployeeId = null;
+      document.getElementById('create-employee-form').reset();
+      document.querySelector('#create-employee-form button').innerText = 'Создать';
+      loadAllEmployees();
+    });
+  } else {
+    // POST с username
+    const data = {
+      full_name: document.getElementById('employee-full-name').value,
+      position: document.getElementById('employee-position').value,
+      username: document.getElementById('employee-username').value
+    };
+    axios.post('/employees_tasks/employees/', data).then(resp => {
+      document.getElementById('employee-message').innerText =
+        'Создан сотрудник. Пароль: ' + resp.data.generated_password;
+      e.target.reset();
+      loadAllEmployees();
+    });
+  }
+};
+
+
+function loadAllTasks() {
+  axios.get('/employees_tasks/tasks/').then(response => {
+    const container = document.getElementById('all-tasks');
+    container.innerHTML = '';
+    const parentSelect = document.getElementById('task-parent');
+    parentSelect.innerHTML = '<option value="">-- Родительская задача --</option>';
+
+    response.data.forEach(task => {
+      const div = document.createElement('div');
+      div.className = 'item';
+
+      const isEmployee = (currentUsername.trim() === (task.employee_username || '').trim());
+      const isAdmin = currentIsStaff;
+      const canEdit = isEmployee;
+      const canDelete = isAdmin && task.status === 'completed';
+
+      console.log(`Task [${task.title}] - currentUsername: [${currentUsername}] - employee_username: [${task.employee_username}] - isEmployee:`, isEmployee);
+
+      div.innerHTML = `
+      <div class="item-header">
+        <div>
+          ${task.title}
+          ${task.parent_task_title ? `(<em>${task.parent_task_title}</em>)` : ''}
+        </div>
+        <div style="font-size:0.85em;color:#ccc;">
+          Исполнитель: ${task.employee_full_name || 'Не назначен'}
+        </div>
+        <div style="font-size:0.85em;color:#ccc;">
+          Статус: ${
+            task.status === 'not_started' ? 'Не начата' :
+            task.status === 'in_progress' ? 'В работе' :
+            task.status === 'completed' ? 'Завершена' :
+            task.status
+          }
+        </div>
+      </div>
+      <div class="item-buttons">
+        ${canEdit ? `<button onclick="editTask(${task.id})">Изменить</button>` : ''}
+        ${canDelete ? `<button onclick="deleteTask(${task.id})">Удалить</button>` : ''}
+      </div>`;
+
+      container.appendChild(div);
+
+      const opt = document.createElement('option');
+      opt.value = task.id;
+      opt.textContent = task.title;
+      parentSelect.appendChild(opt);
+    });
+
+    document.getElementById('task-count').innerText = `(${response.data.length})`;
+    document.getElementById('all-tasks').style.display = 'block';
+  });
+}
+
+
+
+function editTask(id) {
+  // Загружаем задачу
+  axios.get('/employees_tasks/tasks/' + id + '/').then(response => {
+    const task = response.data;
+    editingTaskId = id;
+    editingTaskData = task;
+
+    console.log('editTask() loaded task:', task);
+
+    // Сначала загружаем сотрудников, чтобы <select> был заполнен
+    axios.get('/employees_tasks/employees/').then(empResponse => {
+      const select = document.getElementById('task-employee');
+      select.innerHTML = '<option value="">-- Выбрать сотрудника --</option>';
+      empResponse.data.forEach(emp => {
+        const option = document.createElement('option');
+        option.value = emp.id;
+        option.textContent = emp.full_name;
+        select.appendChild(option);
+      });
+
+      // Теперь заполняем поля формы
+      document.getElementById('task-title').value = task.title || '';
+      document.getElementById('task-employee').value = task.employee || '';
+      document.getElementById('task-deadline').value = task.deadline ? task.deadline.slice(0, 16) : '';
+      document.getElementById('task-parent').value = task.parent_task || '';
+      document.getElementById('task-status').value = task.status || '';
+
+      document.querySelector('#create-task-form button').innerText = 'Сохранить';
+
+      // ГАРАНТИРОВАННО показываем блок с задачами
+      document.getElementById('all-tasks').style.display = 'block';
+    });
+  }).catch(error => {
+    console.error('Ошибка загрузки задачи:', error);
+    alert('Ошибка загрузки задачи.');
+  });
+}
+
+
+
+function deleteTask(id) {
+  if (confirm('Удалить задачу?')) {
+    axios.delete('/employees_tasks/tasks/' + id + '/').then(() => {
+      loadAllTasks();
+      document.getElementById('task-message').innerText = 'Задача удалена.';
+    });
+  }
+}
+
+document.getElementById('create-task-form').onsubmit = (e) => {
+  e.preventDefault();
+
+console.log('editingTaskId:', editingTaskId);
+  if (editingTaskId) {
+  // Редактирование
+  let data;
+  if (editingTaskData && currentUsername === editingTaskData.employee_username && !currentIsStaff) {
+    // Сотрудник меняет только статус
+    data = {
+      status: document.getElementById('task-status').value
+    };
+  } else {
+    // Админ редактирует задачу
+    data = {
+      title: document.getElementById('task-title').value,
+      employee: document.getElementById('task-employee').value,
+      deadline: document.getElementById('task-deadline').value,
+      parent_task: document.getElementById('task-parent').value || null
+    };
+  }
+
+  axios.patch('/employees_tasks/tasks/' + editingTaskId + '/', data).then(() => {
+      editingTaskId = null;
+      editingTaskData = null;
+      document.getElementById('create-task-form').reset();
+
+      // Восстанавливаем видимость полей
+      document.getElementById('task-title').style.display = '';
+      document.getElementById('task-employee').style.display = '';
+      document.getElementById('task-deadline').style.display = '';
+      document.getElementById('task-parent').style.display = '';
+
+
+      document.querySelector('#create-task-form button').innerText = 'Создать';
+
+      // Восстанавливаем поля
+      document.getElementById('task-title').style.display = '';
+      document.getElementById('task-employee').style.display = '';
+      document.getElementById('task-deadline').style.display = '';
+      document.getElementById('task-parent').style.display = '';
+
+      loadAllTasks();
+      document.getElementById('all-tasks').style.display = 'block';
+      document.getElementById('task-message').innerText = 'Задача обновлена.';
+    });
+  } else {
+    // Создание
+    const data = {
+      title: document.getElementById('task-title').value,
+      employee: document.getElementById('task-employee').value,
+      deadline: document.getElementById('task-deadline').value,
+      parent_task: document.getElementById('task-parent').value || null
+    };
+
+    axios.post('/employees_tasks/tasks/', data).then(() => {
+      e.target.reset();
+      loadAllTasks();
+      document.getElementById('task-message').innerText = 'Задача создана.';
+    });
+  }
+};
+
+
+function loadBusyEmployees() {
+  axios.get('/employees_tasks/employees/busy/').then(response => {
+    const container = document.getElementById('busy-employees');
+    container.innerHTML = '';
+    response.data.forEach(emp => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      let tasksHtml = '';
+      emp.tasks.forEach(t => {
+        let status = t.status;
+        if (status === 'not_started') status = 'Не начата';
+        else if (status === 'in_progress') status = 'В работе';
+        else if (status === 'completed') status = 'Завершена';
+        tasksHtml += `<div>- ${t.title} (${status})</div>`;
+      });
+      div.innerHTML = `
+        <div class="item-header">
+          <div><strong>${emp.full_name}</strong></div>
+          ${tasksHtml}
+        </div>`;
+      container.appendChild(div);
+    });
+  }).catch(error => {
+    const container = document.getElementById('busy-employees');
+    container.innerHTML = '<div>Ошибка загрузки: ' + error + '</div>';
+  });
+}
+
+
+function loadSuitableEmployees() {
+  const parentId = document.getElementById('task-parent').value;
+  axios.get('/employees_tasks/tasks/suitable_employees/', {
+    params: { parent_task: parentId }
+  }).then(response => {
+    const select = document.getElementById('task-employee');
+    select.innerHTML = '<option value="">-- Выбрать сотрудника --</option>';
+    response.data.forEach(emp => {
+      const option = document.createElement('option');
+      option.value = emp.id;
+      option.textContent = emp.full_name;
+      select.appendChild(option);
+    });
+  }).catch(error => {
+    alert('Ошибка загрузки подходящих сотрудников');
+  });
+}
+
+
+function loadImportantTasks() {
+  axios.get('/employees_tasks/tasks/important/').then(response => {
+    const container = document.getElementById('important-tasks');
+    container.innerHTML = '';
+    if (response.data.length === 0) {
+      container.innerHTML = '<div>Нет важных задач.</div>';
+      return;
+    }
+    response.data.forEach(task => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+        <div class="item-header">
+          <div>${task.title}</div>
+          <div style="font-size:0.85em;color:#ccc;">
+            Исполнитель: ${task.employee_full_name || 'Не назначен'}
+          </div>
+        </div>`;
+      container.appendChild(div);
+    });
+  }).catch(error => {
+    const container = document.getElementById('important-tasks');
+    container.innerHTML = '<div>Ошибка загрузки: ' + error + '</div>';
+  });
+}
+
+function loadOverdueTasks() {
+  axios.get('/employees_tasks/tasks/overdue/').then(response => {
+    const container = document.getElementById('overdue-tasks');
+    container.innerHTML = '';
+    if (response.data.length === 0) {
+      container.innerHTML = '<div>Нет просроченных задач.</div>';
+      return;
+    }
+    response.data.forEach(task => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+        <div class="item-header">
+          <div>${task.title}</div>
+          <div style="font-size:0.85em;color:#ccc;">
+            Дедлайн: ${task.deadline}
+          </div>
+          <div style="font-size:0.85em;color:#ccc;">
+            Исполнитель: ${task.employee_full_name || 'Не назначен'}
+          </div>
+        </div>`;
+      container.appendChild(div);
+    });
+  }).catch(error => {
+    const container = document.getElementById('overdue-tasks');
+    container.innerHTML = '<div>Ошибка загрузки: ' + error + '</div>';
+  });
+}
+
+
+
+document.getElementById('task-parent').onchange = loadSuitableEmployees;
+document.getElementById('all-tasks-toggle').onclick = () => toggleSection('all-tasks', loadAllTasks);
+document.getElementById('important-tasks-toggle').onclick = () => toggleSection('important-tasks', loadImportantTasks);
+document.getElementById('overdue-tasks-toggle').onclick = () => toggleSection('overdue-tasks', loadOverdueTasks);
+document.getElementById('all-employees-toggle').onclick = () => toggleSection('all-employees', loadAllEmployees);
+document.getElementById('busy-employees-toggle').onclick = () => toggleSection('busy-employees', loadBusyEmployees);
+
+loadAllTasks();
+loadAllEmployees();
+loadCurrentUser();
+
+
+</script>
+</body>
+</html>

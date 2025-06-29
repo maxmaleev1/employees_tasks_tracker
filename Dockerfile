@@ -16,10 +16,13 @@ RUN curl -sSL https://install.python-poetry.org | python3 && \
 
 # Отключаем создание виртуального окружения и устанавливаем зависимости (без установки проекта)
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-root
+    poetry install --no-root --with dev
 
 # Копируем остальной код проекта
 COPY . /app
 
-# Команда по умолчанию — запуск Gunicorn
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Делаем entrypoint.sh исполняемым
+RUN chmod +x entrypoint.sh
+
+# Указываем скрипт entrypoint
+ENTRYPOINT ["./entrypoint.sh"]

@@ -1,18 +1,15 @@
+import random
+import string
+
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from .models import Employee, Task
 
-from random import choices
-import string
-
-
 
 class EmployeeSerializer(serializers.ModelSerializer):
-  username = serializers.CharField(write_only=True)  # имя пользователя
-  generated_password = serializers.CharField(
-    read_only=True, min_length=6, max_length=6
-  )
+  username = serializers.CharField(write_only=True, required=False)
+  generated_password = serializers.CharField(read_only=True)
 
   class Meta:
     model = Employee
@@ -21,38 +18,55 @@ class EmployeeSerializer(serializers.ModelSerializer):
   def create(self, validated_data):
     username = validated_data.pop('username')
 
-    # генерируем простой 6-символьный пароль
-    password = ''.join(choices(string.ascii_lowercase + string.digits, k=6))
+    generated_password = ''.join(
+      random.choices(string.ascii_letters + string.digits, k=8)
+    )
 
-    # создаём пользователя
-    user = User(username=username)
-    user.set_password(password)
-    user.save()
+    user = User.objects.create_user(username=username,
+                                    password=generated_password)
 
-    # создаём сотрудника, связанного с этим пользователем
     employee = Employee.objects.create(user=user, **validated_data)
-
-    # добавляем сгенерированный пароль к объекту (для to_representation)
-    employee._generated_password = password
+    employee.generated_password = generated_password
     return employee
 
+  def update(self, instance, validated_data):
+    validated_data.pop('username', None)  # игнорировать username при PATCH
+    return super().update(instance, validated_data)
+
   def to_representation(self, instance):
-    data = super().to_representation(instance)
-    if hasattr(instance, '_generated_password'):
-      data['generated_password'] = instance._generated_password
-    return data
+    rep = super().to_representation(instance)
+    if hasattr(instance, 'generated_password'):
+      rep['generated_password'] = instance.generated_password
+    return rep
 
 
 
 class TaskSerializer(serializers.ModelSerializer):
-  employee_name = serializers.CharField(
-    source='employee.full_name',
+  employee_full_name = serializers.CharField(
+    source="employee.full_name",
+    read_only=True
+  )
+  parent_task_title = serializers.CharField(
+    source="parent_task.title",
+    read_only=True,
+    default=None
+  )
+  employee_username = serializers.CharField(
+    source="employee.user.username",
     read_only=True
   )
 
   class Meta:
     model = Task
     fields = [
-      'id', 'title', 'parent_task', 'employee', 'employee_name',
-      'deadline', 'status'
+      "id",
+      "title",
+      "status",
+      "deadline",
+      "employee",
+      "employee_full_name",
+      "employee_username",
+      "parent_task",
+      "parent_task_title",
     ]
+
